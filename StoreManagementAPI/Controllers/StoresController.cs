@@ -16,20 +16,18 @@ namespace StoreManagementAPI.Controllers
             _tenantContext = tenantContext;
         }
 
-        private IActionResult CheckTenantContext()
+        private bool IsTenantContextValid()
         {
-            if (!_tenantContext.CompanyId.HasValue)
-            {
-                return BadRequest("X Company ID header is required.");
-            }
-            return Ok();
+            return _tenantContext.CompanyId.HasValue;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetStores()
         {
-            var tenantCheck = CheckTenantContext();
-            if (tenantCheck is BadRequestObjectResult) return tenantCheck;
+            if (!IsTenantContextValid())
+            {
+                return BadRequest("X-Company-ID header is required.");
+            }
             var stores = await _storeService.GetAllStoresAsync();
             return Ok(stores);
         }
@@ -37,8 +35,10 @@ namespace StoreManagementAPI.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetStoreById(Guid id)
         {
-            var tenantCheck = CheckTenantContext();
-            if (tenantCheck is BadRequestObjectResult) return tenantCheck;
+            if (!IsTenantContextValid())
+            {
+                return BadRequest("X-Company-ID header is required.");
+            }
 
             var store = await _storeService.GetStoreByIdAsync(id);
             if (store == null)
@@ -50,8 +50,10 @@ namespace StoreManagementAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateStore(StoreCreateDto storeDto)
         {
-            var tenantCheck = CheckTenantContext();
-            if (tenantCheck is BadRequestObjectResult) return tenantCheck;
+            if (!IsTenantContextValid())
+            {
+                return BadRequest("X-Company-ID header is required.");
+            }
 
             if (!ModelState.IsValid)
             {
@@ -71,8 +73,10 @@ namespace StoreManagementAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStore(Guid id, StoreCreateDto storeDto)
         {
-            var tenantCheck = CheckTenantContext();
-            if (tenantCheck is BadRequestObjectResult) return tenantCheck;
+            if (!IsTenantContextValid())
+            {
+                return BadRequest("X-Company-ID header is required.");
+            }
 
             if (!ModelState.IsValid)
             {
@@ -81,7 +85,7 @@ namespace StoreManagementAPI.Controllers
 
             var store = new Store
             {
-                Id = id, 
+                Id = id,
                 Name = storeDto.Name,
                 Address = storeDto.Address,
                 CompanyId = _tenantContext.CompanyId!.Value
@@ -98,8 +102,10 @@ namespace StoreManagementAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStore(Guid id)
         {
-            var tenantCheck = CheckTenantContext();
-            if (tenantCheck is BadRequestObjectResult) return tenantCheck;
+            if (!IsTenantContextValid())
+            {
+                return BadRequest("X-Company-ID header is required.");
+            }
 
             var deleted = await _storeService.DeleteStoreAsync(id);
             if (!deleted)

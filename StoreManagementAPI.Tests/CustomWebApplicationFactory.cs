@@ -72,9 +72,9 @@ namespace StoreManagementAPI.Tests
                     }
                     if (!db.Stores.Any())
                     {
-                        db.Stores.Add(new Store { Id = Guid.Parse("60a0d0a0-e1f2-3456-7890-000000000001"), Name = "Store 1A", Address = "123 Main St", CompanyId = Guid.Parse("40a0d0d0-e1f2-3456-7890-000000000001") });
-                        db.Stores.Add(new Store { Id = Guid.Parse("70a0d0a0-e1f2-3456-7890-000000000002"), Name = "Store 2A", Address = "456 Oak Ave", CompanyId = Guid.Parse("40a0d0d0-e1f2-3456-7890-000000000001") });
-                        db.Stores.Add(new Store { Id = Guid.Parse("80a0d0a0-e1f2-3456-7890-000000000003"), Name = "Store 1B", Address = "789 Pine Rd", CompanyId = Guid.Parse("50a0d0d0-e1f2-3456-7890-000000000002") });
+                        db.Stores.Add(new Store { Id = Guid.Parse("60a0d0a0-e1f2-3456-7890-000000000001"), Name = "Store 1A", Address = "123 Main St", CompanyId = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001") });
+                        db.Stores.Add(new Store { Id = Guid.Parse("70a0d0a0-e1f2-3456-7890-000000000002"), Name = "Store 2A", Address = "456 Oak Ave", CompanyId = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001") });
+                        db.Stores.Add(new Store { Id = Guid.Parse("80a0d0a0-e1f2-3456-7890-000000000003"), Name = "Store 1B", Address = "789 Pine Rd", CompanyId = Guid.Parse("50a0d0a0-e1f2-3456-7890-000000000002") });
                         db.SaveChanges();
                     }
                 }
