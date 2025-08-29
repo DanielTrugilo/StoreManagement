@@ -7,11 +7,14 @@ using Microsoft.Extensions.Logging;
 using StoreManagementAPI.Data;
 using StoreManagementAPI.Models;
 using System.Linq;
+using System.Threading;
 
 namespace StoreManagementAPI.Tests
 {
     public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProgram> where TProgram : class
     {
+        private static int _databaseCounter = 0;
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureServices(services =>
@@ -32,8 +35,8 @@ namespace StoreManagementAPI.Tests
                     services.Remove(descriptor);
                 }
 
-                // Add InMemory database with a unique name for each test run
-                var databaseName = $"InMemoryDbForTesting_{Guid.NewGuid()}";
+                // Add InMemory database with a unique name for each test class instance
+                var databaseName = $"InMemoryDbForTesting_{Interlocked.Increment(ref _databaseCounter)}_{Guid.NewGuid()}";
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
                     options.UseInMemoryDatabase(databaseName);
@@ -51,6 +54,26 @@ namespace StoreManagementAPI.Tests
             });
 
             builder.UseEnvironment("Testing");
+        }
+
+        public void ResetDatabase()
+        {
+            using (var scope = Services.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                // Clear and reseed the database
+                if (context.Stores.Any())
+                {
+                    context.Stores.RemoveRange(context.Stores);
+                }
+                if (context.Companies.Any())
+                {
+                    context.Companies.RemoveRange(context.Companies);
+                }
+                context.SaveChanges();
+
+                SeedDatabase(context);
+            }
         }
 
         private void SeedDatabase(ApplicationDbContext context)

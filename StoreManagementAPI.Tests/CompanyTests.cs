@@ -26,6 +26,11 @@ namespace StoreManagementAPI.Tests
             _client = _factory.CreateClient();
         }
 
+        private void ResetDatabase()
+        {
+            _factory.ResetDatabase();
+        }
+
         [Fact]
         public async Task Post_CreateCompany_ReturnsCreatedStatusCode()
         {
@@ -64,6 +69,7 @@ namespace StoreManagementAPI.Tests
         public async Task Get_GetAllCompanies_ReturnsOkStatusCodeAndCompanies()
         {
             // Arrange (companies are seeded in CustomWebApplicationFactory)
+            ResetDatabase(); // Ensure fresh data
             _client.DefaultRequestHeaders.Clear();
 
             // Act
@@ -86,6 +92,7 @@ namespace StoreManagementAPI.Tests
         public async Task Get_GetCompanyById_ReturnsOkStatusCodeAndCompany()
         {
             // Arrange
+            ResetDatabase(); // Ensure fresh data
             var companyId = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001"); // Seeded company
             _client.DefaultRequestHeaders.Clear();
 
