@@ -71,7 +71,7 @@ namespace StoreManagementAPI.Controllers
             return CreatedAtAction(nameof(GetStoreById), new { id = createdStore.Id }, createdStore);
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateStore(Guid id, StoreCreateDto storeDto)
+        public async Task<IActionResult> UpdateStore(Guid id, StoreCreateDto storeDto) // Changed from StoreCreateDto to handle both create and update
         {
             if (!IsTenantContextValid())
             {

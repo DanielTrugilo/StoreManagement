@@ -1,12 +1,11 @@
 ﻿// StoreManagementApi.Tests/CustomWebApplicationFactory.cs
-using System.Reflection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using StoreManagementAPI.Data;
 using StoreManagementAPI.Models;
-using System.IO;
 using System.Linq;
 
 namespace StoreManagementAPI.Tests
@@ -15,106 +14,113 @@ namespace StoreManagementAPI.Tests
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            // Try to set content root - if it fails, let WebApplicationFactory handle it
-            try
-            {
-                var contentRoot = GetProjectPath("StoreManagementAPI", typeof(TProgram).Assembly);
-                builder.UseContentRoot(contentRoot);
-            }
-            catch
-            {
-                // If we can't find the project path, don't set content root
-                // and let WebApplicationFactory try to resolve it automatically
-            }
-
             builder.ConfigureServices(services =>
             {
-                // Remove ALL Entity Framework and DbContext related services
+                // Remove all Entity Framework related services more comprehensively
                 var descriptorsToRemove = services.Where(d =>
                     d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>) ||
                     d.ServiceType == typeof(DbContextOptions) ||
                     d.ServiceType == typeof(ApplicationDbContext) ||
-                    d.ServiceType.IsGenericType && d.ServiceType.GetGenericTypeDefinition() == typeof(DbContextOptions<>) ||
-                    d.ServiceType.Name.Contains("DbContext") ||
-                    (d.ImplementationType?.Name.Contains("DbContext") == true) ||
-                    (d.ImplementationType?.Name.Contains("SqlServer") == true)).ToList();
+                    (d.ServiceType != null && d.ServiceType.IsGenericType && d.ServiceType.GetGenericTypeDefinition() == typeof(DbContextOptions<>)) ||
+                    (d.ServiceType != null && d.ServiceType.Name.Contains("DbContext")) ||
+                    (d.ImplementationType?.Name.Contains("SqlServer") == true) ||
+                    (d.ImplementationType?.Assembly?.GetName().Name?.Contains("SqlServer") == true))
+                    .ToList();
 
                 foreach (var descriptor in descriptorsToRemove)
                 {
                     services.Remove(descriptor);
                 }
 
-                // Clear and re-add DbContext with only InMemory provider
-                services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+                // Add InMemory database with a unique name for each test run
+                var databaseName = $"InMemoryDbForTesting_{Guid.NewGuid()}";
+                services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase($"InMemoryDbForTesting_{Guid.NewGuid()}");
-                    // Don't use any other providers
+                    options.UseInMemoryDatabase(databaseName);
+                    options.EnableSensitiveDataLogging();
+                    // Important: Don't use any SQL Server specific options
                 }, ServiceLifetime.Scoped);
 
-                // Build the service provider.
-                var sp = services.BuildServiceProvider();
-
-                // Create a scope to obtain a reference to the database contexts.
-                using (var scope = sp.CreateScope())
+                // Build service provider and seed immediately
+                var serviceProvider = services.BuildServiceProvider();
+                using (var scope = serviceProvider.CreateScope())
                 {
-                    var scopedServices = scope.ServiceProvider;
-                    var db = scopedServices.GetRequiredService<ApplicationDbContext>();
-
-                    // Ensure the database is created in memory.
-                    db.Database.EnsureCreated();
-
-                    // Seed the database with test data
-                    if (!db.Companies.Any())
-                    {
-                        db.Companies.Add(new Company { Id = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001"), Name = "Company A" });
-                        db.Companies.Add(new Company { Id = Guid.Parse("50a0d0a0-e1f2-3456-7890-000000000002"), Name = "Company B" });
-                        db.SaveChanges();
-                    }
-                    if (!db.Stores.Any())
-                    {
-                        db.Stores.Add(new Store { Id = Guid.Parse("60a0d0a0-e1f2-3456-7890-000000000001"), Name = "Store 1A", Address = "123 Main St", CompanyId = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001") });
-                        db.Stores.Add(new Store { Id = Guid.Parse("70a0d0a0-e1f2-3456-7890-000000000002"), Name = "Store 2A", Address = "456 Oak Ave", CompanyId = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001") });
-                        db.Stores.Add(new Store { Id = Guid.Parse("80a0d0a0-e1f2-3456-7890-000000000003"), Name = "Store 1B", Address = "789 Pine Rd", CompanyId = Guid.Parse("50a0d0a0-e1f2-3456-7890-000000000002") });
-                        db.SaveChanges();
-                    }
+                    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    SeedDatabase(context);
                 }
             });
+
+            builder.UseEnvironment("Testing");
         }
 
-        // Improved helper method to find the content root
-        private string GetProjectPath(string projectName, Assembly startupAssembly)
+        private void SeedDatabase(ApplicationDbContext context)
         {
-            // Start from the current directory (where tests are running)
-            var currentDirectory = Directory.GetCurrentDirectory();
-            var directory = new DirectoryInfo(currentDirectory);
-
-            // Look for the project file starting from current directory and going up
-            while (directory != null && !directory.GetFiles($"{projectName}.csproj").Any())
+            try
             {
-                directory = directory.Parent;
-            }
+                // Ensure database is created
+                context.Database.EnsureCreated();
 
-            if (directory == null)
-            {
-                // Try alternative approach - look for the project in common relative locations
-                var testProjectDir = new DirectoryInfo(currentDirectory);
-                var solutionDir = testProjectDir.Parent; // Assuming test project is in a subfolder of solution
-
-                if (solutionDir != null)
+                // Clear existing data to avoid conflicts
+                if (context.Stores.Any())
                 {
-                    var projectDirs = solutionDir.GetDirectories(projectName, SearchOption.AllDirectories);
-                    var projectDir = projectDirs.FirstOrDefault(d => d.GetFiles($"{projectName}.csproj").Any());
-
-                    if (projectDir != null)
-                    {
-                        return projectDir.FullName;
-                    }
+                    context.Stores.RemoveRange(context.Stores);
                 }
+                if (context.Companies.Any())
+                {
+                    context.Companies.RemoveRange(context.Companies);
+                }
+                context.SaveChanges();
 
-                throw new InvalidOperationException($"Project {projectName}.csproj not found. Unable to set content root.");
+                // Add companies
+                var companyA = new Company
+                {
+                    Id = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001"),
+                    Name = "Company A"
+                };
+                var companyB = new Company
+                {
+                    Id = Guid.Parse("50a0d0a0-e1f2-3456-7890-000000000002"),
+                    Name = "Company B"
+                };
+
+                context.Companies.AddRange(companyA, companyB);
+                context.SaveChanges();
+
+                // Add stores
+                var stores = new[]
+                {
+                    new Store
+                    {
+                        Id = Guid.Parse("60a0d0a0-e1f2-3456-7890-000000000001"),
+                        Name = "Store 1A",
+                        Address = "123 Main St",
+                        CompanyId = companyA.Id
+                    },
+                    new Store
+                    {
+                        Id = Guid.Parse("70a0d0a0-e1f2-3456-7890-000000000002"),
+                        Name = "Store 2A",
+                        Address = "456 Oak Ave",
+                        CompanyId = companyA.Id
+                    },
+                    new Store
+                    {
+                        Id = Guid.Parse("80a0d0a0-e1f2-3456-7890-000000000003"),
+                        Name = "Store 1B",
+                        Address = "789 Pine Rd",
+                        CompanyId = companyB.Id
+                    }
+                };
+
+                context.Stores.AddRange(stores);
+                context.SaveChanges();
             }
-
-            return directory.FullName;
+            catch (Exception ex)
+            {
+                // Log error but don't throw to avoid breaking test setup
+                Console.WriteLine($"Error seeding database: {ex.Message}");
+                throw;
+            }
         }
     }
 }

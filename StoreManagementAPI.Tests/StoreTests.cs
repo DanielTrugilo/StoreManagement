@@ -28,7 +28,7 @@ namespace StoreManagementAPI.Tests
         public StoresControllerTests(CustomWebApplicationFactory<Program> factory)
         {
             _factory = factory;
-            _client = factory.CreateClient();
+            _client = _factory.CreateClient();
         }
 
         [Fact]
@@ -39,6 +39,7 @@ namespace StoreManagementAPI.Tests
             var content = new StringContent(JsonConvert.SerializeObject(newStore), Encoding.UTF8, "application/json");
 
             // Set the X-Company-ID header for the request
+            _client.DefaultRequestHeaders.Clear();
             _client.DefaultRequestHeaders.Add("X-Company-ID", _companyAId.ToString());
 
             // Act
@@ -64,7 +65,6 @@ namespace StoreManagementAPI.Tests
                 Assert.NotNull(storeInDb);
                 Assert.Equal(createdStore.Name, storeInDb.Name);
             }
-            _client.DefaultRequestHeaders.Remove("X-Company-ID"); // Clean up header for subsequent tests
         }
 
         [Fact]
@@ -73,6 +73,9 @@ namespace StoreManagementAPI.Tests
             // Arrange
             var newStore = new StoreCreateDto { Name = "Invalid Store", Address = "Invalid Address" };
             var content = new StringContent(JsonConvert.SerializeObject(newStore), Encoding.UTF8, "application/json");
+
+            // Ensure no X-Company-ID header
+            _client.DefaultRequestHeaders.Clear();
 
             // Act - No X-Company-ID header is explicitly added here
             var response = await _client.PostAsync("/api/Stores", content);
@@ -87,6 +90,7 @@ namespace StoreManagementAPI.Tests
         public async Task Get_GetAllStores_ReturnsOnlyStoresForProvidedCompanyId()
         {
             // Arrange
+            _client.DefaultRequestHeaders.Clear();
             _client.DefaultRequestHeaders.Add("X-Company-ID", _companyAId.ToString());
 
             // Act
@@ -103,15 +107,13 @@ namespace StoreManagementAPI.Tests
             Assert.True(stores.Any());
             Assert.Contains(stores, s => s.Id == _store1AId); // Store 1A belongs to Company A, should be returned
             Assert.DoesNotContain(stores, s => s.Id == _store1BId); // Store 1B belongs to Company B, should NOT be returned
-
-            // Clean up header
-            _client.DefaultRequestHeaders.Remove("X-Company-ID");
         }
 
         [Fact]
         public async Task Get_GetStoreById_ReturnsStoreForProvidedCompanyId()
         {
             // Arrange
+            _client.DefaultRequestHeaders.Clear();
             _client.DefaultRequestHeaders.Add("X-Company-ID", _companyAId.ToString());
 
             // Act
@@ -127,9 +129,6 @@ namespace StoreManagementAPI.Tests
             Assert.NotNull(store);
             Assert.Equal(_store1AId, store.Id);
             Assert.Equal(_companyAId, store.CompanyId);
-
-            // Clean up header
-            _client.DefaultRequestHeaders.Remove("X-Company-ID");
         }
 
         [Fact]
@@ -137,6 +136,7 @@ namespace StoreManagementAPI.Tests
         {
             // Arrange
             // Try to get Store 1A (belongs to Company A) using Company B's ID
+            _client.DefaultRequestHeaders.Clear();
             _client.DefaultRequestHeaders.Add("X-Company-ID", _companyBId.ToString());
 
             // Act
@@ -144,9 +144,6 @@ namespace StoreManagementAPI.Tests
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-            // Clean up header
-            _client.DefaultRequestHeaders.Remove("X-Company-ID");
         }
 
         [Fact]
@@ -154,9 +151,10 @@ namespace StoreManagementAPI.Tests
         {
             // Arrange
             var storeToUpdateId = Guid.Parse("70a0d0a0-e1f2-3456-7890-000000000002"); // Store 2A for Company A
-            var updatedStoreDto = new StoreUpdateDto { Name = "Updated Store 2A", Address = "Updated Address for 2A" };
+            var updatedStoreDto = new StoreCreateDto { Name = "Updated Store 2A", Address = "Updated Address for 2A" }; // Changed from StoreUpdateDto
             var content = new StringContent(JsonConvert.SerializeObject(updatedStoreDto), Encoding.UTF8, "application/json");
 
+            _client.DefaultRequestHeaders.Clear();
             _client.DefaultRequestHeaders.Add("X-Company-ID", _companyAId.ToString());
 
             // Act
@@ -175,8 +173,6 @@ namespace StoreManagementAPI.Tests
                 Assert.Equal("Updated Store 2A", storeInDb.Name);
                 Assert.Equal("Updated Address for 2A", storeInDb.Address);
             }
-            // Clean up header
-            _client.DefaultRequestHeaders.Remove("X-Company-ID");
         }
 
         [Fact]
@@ -185,9 +181,10 @@ namespace StoreManagementAPI.Tests
             // Arrange
             // Try to update Store 1A (Company A) with Company B's ID, which should fail
             var storeToUpdateId = _store1AId;
-            var updatedStoreDto = new StoreUpdateDto { Name = "Malicious Update", Address = "Malicious Address" };
+            var updatedStoreDto = new StoreCreateDto { Name = "Malicious Update", Address = "Malicious Address" }; // Changed from StoreUpdateDto
             var content = new StringContent(JsonConvert.SerializeObject(updatedStoreDto), Encoding.UTF8, "application/json");
 
+            _client.DefaultRequestHeaders.Clear();
             _client.DefaultRequestHeaders.Add("X-Company-ID", _companyBId.ToString());
 
             // Act
@@ -204,8 +201,6 @@ namespace StoreManagementAPI.Tests
                 Assert.NotNull(originalStore);
                 Assert.NotEqual("Malicious Update", originalStore.Name); // Ensure it wasn't updated
             }
-            // Clean up header
-            _client.DefaultRequestHeaders.Remove("X-Company-ID");
         }
 
         [Fact]
@@ -214,6 +209,7 @@ namespace StoreManagementAPI.Tests
             // Arrange: Create a new store to delete it safely without affecting seeded data for other tests
             var storeToDelete = new StoreCreateDto { Name = "Temp Store for Deletion", Address = "Delete Me St" };
             var createContent = new StringContent(JsonConvert.SerializeObject(storeToDelete), Encoding.UTF8, "application/json");
+            _client.DefaultRequestHeaders.Clear();
             _client.DefaultRequestHeaders.Add("X-Company-ID", _companyAId.ToString());
             var createResponse = await _client.PostAsync("/api/Stores", createContent);
             createResponse.EnsureSuccessStatusCode();
@@ -234,8 +230,6 @@ namespace StoreManagementAPI.Tests
                 var storeInDb = await dbContext.Stores.FindAsync(createdStore.Id);
                 Assert.Null(storeInDb);
             }
-            // Clean up header
-            _client.DefaultRequestHeaders.Remove("X-Company-ID");
         }
 
         [Fact]
@@ -243,6 +237,7 @@ namespace StoreManagementAPI.Tests
         {
             // Arrange
             // Try to delete Store 1A (Company A) with Company B's ID
+            _client.DefaultRequestHeaders.Clear();
             _client.DefaultRequestHeaders.Add("X-Company-ID", _companyBId.ToString());
 
             // Act
@@ -258,8 +253,6 @@ namespace StoreManagementAPI.Tests
                 var originalStore = await dbContext.Stores.FindAsync(_store1AId);
                 Assert.NotNull(originalStore); // The store should still exist
             }
-            // Clean up header
-            _client.DefaultRequestHeaders.Remove("X-Company-ID");
         }
     }
 }

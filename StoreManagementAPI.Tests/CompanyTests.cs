@@ -23,7 +23,7 @@ namespace StoreManagementAPI.Tests
         public CompaniesControllerTests(CustomWebApplicationFactory<Program> factory)
         {
             _factory = factory;
-            _client = factory.CreateClient();
+            _client = _factory.CreateClient();
         }
 
         [Fact]
@@ -32,6 +32,9 @@ namespace StoreManagementAPI.Tests
             // Arrange
             var newCompany = new Company { Name = "Test Company" };
             var content = new StringContent(JsonConvert.SerializeObject(newCompany), Encoding.UTF8, "application/json");
+
+            // Clear any existing headers
+            _client.DefaultRequestHeaders.Clear();
 
             // Act
             var response = await _client.PostAsync("/api/Companies", content);
@@ -61,6 +64,7 @@ namespace StoreManagementAPI.Tests
         public async Task Get_GetAllCompanies_ReturnsOkStatusCodeAndCompanies()
         {
             // Arrange (companies are seeded in CustomWebApplicationFactory)
+            _client.DefaultRequestHeaders.Clear();
 
             // Act
             var response = await _client.GetAsync("/api/Companies");
@@ -83,6 +87,7 @@ namespace StoreManagementAPI.Tests
         {
             // Arrange
             var companyId = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001"); // Seeded company
+            _client.DefaultRequestHeaders.Clear();
 
             // Act
             var response = await _client.GetAsync($"/api/Companies/{companyId}");
@@ -104,6 +109,7 @@ namespace StoreManagementAPI.Tests
         {
             // Arrange
             var nonExistentId = Guid.NewGuid();
+            _client.DefaultRequestHeaders.Clear();
 
             // Act
             var response = await _client.GetAsync($"/api/Companies/{nonExistentId}");
@@ -119,6 +125,7 @@ namespace StoreManagementAPI.Tests
             var companyId = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001");
             var updatedCompany = new Company { Id = companyId, Name = "Updated Company A" };
             var content = new StringContent(JsonConvert.SerializeObject(updatedCompany), Encoding.UTF8, "application/json");
+            _client.DefaultRequestHeaders.Clear();
 
             // Act
             var response = await _client.PutAsync($"/api/Companies/{companyId}", content);
@@ -142,6 +149,7 @@ namespace StoreManagementAPI.Tests
         {
             // Arrange
             var companyIdToDelete = Guid.Parse("50a0d0a0-e1f2-3456-7890-000000000002"); // Seeded company
+            _client.DefaultRequestHeaders.Clear();
 
             // Act
             var response = await _client.DeleteAsync($"/api/Companies/{companyIdToDelete}");
@@ -164,6 +172,7 @@ namespace StoreManagementAPI.Tests
         {
             // Arrange
             var nonExistentId = Guid.NewGuid();
+            _client.DefaultRequestHeaders.Clear();
 
             // Act
             var response = await _client.DeleteAsync($"/api/Companies/{nonExistentId}");
