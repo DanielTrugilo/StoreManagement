@@ -82,7 +82,7 @@ namespace StoreManagementAPI.Tests
         public async Task Get_GetCompanyById_ReturnsOkStatusCodeAndCompany()
         {
             // Arrange
-            var companyId = Guid.Parse("c0a0d0a0-e1f2-3456-7890-000000000001"); // Seeded company
+            var companyId = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001"); // Seeded company
 
             // Act
             var response = await _client.GetAsync($"/api/Companies/{companyId}");
@@ -116,7 +116,7 @@ namespace StoreManagementAPI.Tests
         public async Task Put_UpdateCompany_ReturnsNoContentStatusCode()
         {
             // Arrange
-            var companyId = Guid.Parse("c0a0d0a0-e1f2-3456-7890-000000000001");
+            var companyId = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001");
             var updatedCompany = new Company { Id = companyId, Name = "Updated Company A" };
             var content = new StringContent(JsonConvert.SerializeObject(updatedCompany), Encoding.UTF8, "application/json");
 
@@ -141,7 +141,7 @@ namespace StoreManagementAPI.Tests
         public async Task Delete_DeleteCompany_ReturnsNoContentStatusCode()
         {
             // Arrange
-            var companyIdToDelete = Guid.Parse("c0a0d0a0-e1f2-3456-7890-000000000002"); // Seeded company
+            var companyIdToDelete = Guid.Parse("50a0d0a0-e1f2-3456-7890-000000000002"); // Seeded company
 
             // Act
             var response = await _client.DeleteAsync($"/api/Companies/{companyIdToDelete}");

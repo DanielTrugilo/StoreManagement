@@ -19,10 +19,10 @@ namespace StoreManagementAPI.Tests
     {
         private readonly HttpClient _client;
         private readonly CustomWebApplicationFactory<Program> _factory;
-        private readonly Guid _companyAId = Guid.Parse("c0a0d0a0-e1f2-3456-7890-000000000001");
-        private readonly Guid _companyBId = Guid.Parse("c0a0d0a0-e1f2-3456-7890-000000000002");
-        private readonly Guid _store1AId = Guid.Parse("s0a0d0a0-e1f2-3456-7890-000000000001");
-        private readonly Guid _store1BId = Guid.Parse("s0a0d0a0-e1f2-3456-7890-000000000003");
+        private readonly Guid _companyAId = Guid.Parse("40a0d0a0-e1f2-3456-7890-000000000001");
+        private readonly Guid _companyBId = Guid.Parse("50a0d0a0-e1f2-3456-7890-000000000002");
+        private readonly Guid _store1AId = Guid.Parse("60a0d0a0-e1f2-3456-7890-000000000001");
+        private readonly Guid _store1BId = Guid.Parse("80a0d0a0-e1f2-3456-7890-000000000003");
 
 
         public StoresControllerTests(CustomWebApplicationFactory<Program> factory)
@@ -153,7 +153,7 @@ namespace StoreManagementAPI.Tests
         public async Task Put_UpdateStore_ReturnsNoContentForValidCompany()
         {
             // Arrange
-            var storeToUpdateId = Guid.Parse("s0a0d0a0-e1f2-3456-7890-000000000002"); // Store 2A for Company A
+            var storeToUpdateId = Guid.Parse("70a0d0a0-e1f2-3456-7890-000000000002"); // Store 2A for Company A
             var updatedStoreDto = new StoreUpdateDto { Name = "Updated Store 2A", Address = "Updated Address for 2A" };
             var content = new StringContent(JsonConvert.SerializeObject(updatedStoreDto), Encoding.UTF8, "application/json");
 
